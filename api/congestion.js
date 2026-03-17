@@ -18,7 +18,7 @@ function parseXML(xml) {
   };
 }
 
-export default function handler(req, res) {
+module.exports = async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Origin', '*');
 
   const { place } = req.query;
