@@ -341,7 +341,7 @@ function updateMarker(p){
     mapInstance.setLevel(4);
   });
   markers[p.cd]=marker;
-  
+
   // updateMarker 함수 끝부분에 추가
 if (d.lat && d.lng) {
   // 기존 마커 생성 코드 ...
@@ -482,6 +482,7 @@ async function fetchAllData() {
     }));
     await new Promise(r => setTimeout(r, 300)); // rate limit 방지 딜레이
   }
+}
 
 applyFilters();
 kakao.maps.load(function(){
