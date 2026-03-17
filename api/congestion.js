@@ -12,7 +12,7 @@ export default function handler(req, res) {
 
   const options = {
     hostname: 'openapi.seoul.go.kr',
-    port: 8088,
+    port: 443,
     path: path,
     method: 'GET',
   };
