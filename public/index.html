@@ -185,6 +185,7 @@ const LEVEL_ORDER  = {'붐빔':4,'약간 붐빔':3,'보통':2,'여유':1};
 let placeData = {};
 let mapInstance = null;
 let markers = {};
+let circles = {};
 let selectedCd = null;
 let activeLevel = '전체';
 let activeCat = '전체';
@@ -300,7 +301,14 @@ function updateMarker(p){
   const d=placeData[p.cd];
   if(!d||!d.lat||!d.lng) return;
   const color=getLevelColor(d.level);
-  if(markers[p.cd]){markers[p.cd].setMap(null);delete markers[p.cd];}
+  if(markers[p.cd]){
+    markers[p.cd].setMap(null);
+    delete markers[p.cd];
+  }
+  if(circles[p.cd]){
+    circles[p.cd].setMap(null);
+    delete circles[p.cd];
+  }
 
   const isSelected = selectedCd === p.cd;
   const hasSelection = selectedCd !== null;
@@ -332,25 +340,9 @@ function updateMarker(p){
     title:p.nm,
     zIndex: isSelected ? 10 : 1
   });
-  kakao.maps.event.addListener(marker,'click',()=>{
-    selectedCd=p.cd;
-    refreshAllMarkers();
-    applyFilters();
-    showDetail(p,d);
-    mapInstance.setCenter(new kakao.maps.LatLng(d.lat,d.lng));
-    mapInstance.setLevel(4);
-  });
-  markers[p.cd]=marker;
-
-  // updateMarker 함수 끝부분에 추가
-if (d.lat && d.lng) {
-  // 기존 마커 생성 코드 ...
-
-  // 혼잡도 원 오버레이
   const radius = p.cat === '인구밀집지역' ? 250 :    // 역은 작게
                  p.cat === '발달상권' ? 500 :         // 상권은 넓게
                  600;                                 // 나머지
-
   const circle = new kakao.maps.Circle({
     center: new kakao.maps.LatLng(d.lat, d.lng),
     radius: radius,
@@ -361,12 +353,21 @@ if (d.lat && d.lng) {
     fillOpacity: 0.18 + (getLevelScore(d.level) * 0.08), // 붐빔일수록 진하게
     zIndex: selectedCd === p.cd ? 5 : 1
   });
-  circle.setMap(mapInstance);
 
-  // 나중에 관리하려면
-  // if (!circles) circles = {}; circles[p.cd] = circle;
+  kakao.maps.event.addListener(marker,'click',()=>{
+    selectedCd=p.cd;
+    refreshAllMarkers();
+    applyFilters();
+    showDetail(p,d);
+    mapInstance.setCenter(new kakao.maps.LatLng(d.lat,d.lng));
+    mapInstance.setLevel(4);
+  });
+  markers[p.cd]=marker;
+
+  circle.setMap(mapInstance);
+  circles[p.cd] = circle;
 }
-}
+
 
 // 모든 마커 다시 그리기 (선택 상태 반영)
 function refreshAllMarkers(){
