@@ -169,8 +169,6 @@
 
 <script src="https://dapi.kakao.com/v2/maps/sdk.js?appkey=5aeed6fd89c67015e6586dc78ba83be7&autoload=false"></script>
 <script>
-// Vercel 배포 후 자동으로 같은 도메인의 /api/congestion 을 사용
-// 로컬 테스트 시엔 localhost:3000/api/congestion 으로 변경 가능
 const API_PROXY = '/api/congestion';
 
 const PLACES = [
@@ -263,11 +261,15 @@ function updateStats(){
 
 function selectPlace(cd){
   selectedCd=cd;
+  refreshAllMarkers();
   applyFilters();
   const d=placeData[cd];
   const p=PLACES.find(x=>x.cd===cd);
   if(!p) return;
-  if(d&&mapInstance&&d.lat&&d.lng){mapInstance.setCenter(new kakao.maps.LatLng(d.lat,d.lng));mapInstance.setLevel(4);}
+  if(d&&mapInstance&&d.lat&&d.lng){
+    mapInstance.setCenter(new kakao.maps.LatLng(d.lat,d.lng));
+    mapInstance.setLevel(4);
+  }
   if(d) showDetail(p,d);
 }
 
@@ -288,24 +290,62 @@ function showDetail(p,d){
 function closeDetail(){
   document.getElementById('detail-panel').classList.remove('show');
   selectedCd=null;
+  refreshAllMarkers();
   applyFilters();
 }
 
+// 마커 생성 - 선택 여부에 따라 크기/강조/투명도 다르게
 function updateMarker(p){
   if(!mapInstance) return;
   const d=placeData[p.cd];
   if(!d||!d.lat||!d.lng) return;
   const color=getLevelColor(d.level);
   if(markers[p.cd]){markers[p.cd].setMap(null);delete markers[p.cd];}
-  const svg=`<svg xmlns="http://www.w3.org/2000/svg" width="32" height="40" viewBox="0 0 32 40"><ellipse cx="16" cy="37" rx="5" ry="2.5" fill="rgba(0,0,0,0.3)"/><path d="M16 2C9.4 2 4 7.4 4 14c0 9 12 24 12 24S28 23 28 14C28 7.4 22.6 2 16 2z" fill="${color}" stroke="rgba(255,255,255,0.3)" stroke-width="1.5"/><circle cx="16" cy="14" r="5" fill="rgba(255,255,255,0.25)"/></svg>`;
+
+  const isSelected = selectedCd === p.cd;
+  const hasSelection = selectedCd !== null;
+  const size   = isSelected ? 44 : 32;
+  const height = isSelected ? 54 : 40;
+  const opacity = hasSelection && !isSelected ? 0.25 : 1;
+  const stroke = isSelected ? '#ffffff' : 'rgba(255,255,255,0.3)';
+  const strokeW = isSelected ? 2.5 : 1.5;
+  const ring = isSelected
+    ? `<circle cx="16" cy="14" r="7.5" fill="none" stroke="rgba(255,255,255,0.55)" stroke-width="1.5"/>`
+    : '';
+
+  const svg=`<svg xmlns="http://www.w3.org/2000/svg" width="${size}" height="${height}" viewBox="0 0 32 40" opacity="${opacity}">
+    <ellipse cx="16" cy="37" rx="5" ry="2.5" fill="rgba(0,0,0,0.3)"/>
+    <path d="M16 2C9.4 2 4 7.4 4 14c0 9 12 24 12 24S28 23 28 14C28 7.4 22.6 2 16 2z" fill="${color}" stroke="${stroke}" stroke-width="${strokeW}"/>
+    <circle cx="16" cy="14" r="5" fill="rgba(255,255,255,0.25)"/>
+    ${ring}
+  </svg>`;
+
   const imgSrc='data:image/svg+xml;base64,'+btoa(unescape(encodeURIComponent(svg)));
   const marker=new kakao.maps.Marker({
-    position:new kakao.maps.LatLng(d.lat,d.lng),map:mapInstance,
-    image:new kakao.maps.MarkerImage(imgSrc,new kakao.maps.Size(32,40),{offset:new kakao.maps.Point(16,40)}),
-    title:p.nm
+    position:new kakao.maps.LatLng(d.lat,d.lng),
+    map:mapInstance,
+    image:new kakao.maps.MarkerImage(
+      imgSrc,
+      new kakao.maps.Size(size,height),
+      {offset:new kakao.maps.Point(size/2,height)}
+    ),
+    title:p.nm,
+    zIndex: isSelected ? 10 : 1
   });
-  kakao.maps.event.addListener(marker,'click',()=>{selectedCd=p.cd;applyFilters();showDetail(p,d);mapInstance.setCenter(new kakao.maps.LatLng(d.lat,d.lng));});
+  kakao.maps.event.addListener(marker,'click',()=>{
+    selectedCd=p.cd;
+    refreshAllMarkers();
+    applyFilters();
+    showDetail(p,d);
+    mapInstance.setCenter(new kakao.maps.LatLng(d.lat,d.lng));
+    mapInstance.setLevel(4);
+  });
   markers[p.cd]=marker;
+}
+
+// 모든 마커 다시 그리기 (선택 상태 반영)
+function refreshAllMarkers(){
+  PLACES.forEach(p=>{ if(placeData[p.cd]) updateMarker(p); });
 }
 
 async function fetchAllData(){
