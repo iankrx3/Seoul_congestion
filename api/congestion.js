@@ -28,7 +28,7 @@ module.exports = async function handler(req, res) {
   const options = {
     hostname: 'openapi.seoul.go.kr',
     port: 8088,
-    path: `/8088/${API_KEY}/xml/citydata/1/5/${encodeURIComponent(place)}`,
+    path: `/${API_KEY}/xml/citydata/1/5/${encodeURIComponent(place)}`,
     method: 'GET',
   };
 
